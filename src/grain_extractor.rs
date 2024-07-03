@@ -21,6 +21,8 @@ pub struct GrainEntry {
     pub sample_rate: u32,
     pub grain_duration: f64,
     pub energy: f64,
+    pub pitch_estimation: f64,
+    pub midi: f64,
     pub spectral_centroid: f64,
     pub spectral_entropy: f64,
     pub spectral_flatness: f64,
@@ -76,6 +78,10 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
     let mut analysis_vec: Vec<GrainEntry> = Vec::with_capacity(grain_frames.len());
     let mut grains: Vec<Vec<f64>> = Vec::with_capacity(grain_frames.len());
 
+    // For pyin
+    const F_MIN: f64 = 50.0;
+    const F_MAX: f64 = 800.0;
+
     // Verify grain size
     for i in 0..grain_frames.len() {
         let grain_size = grain_frames[i].1 - grain_frames[i].0;
@@ -112,6 +118,8 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
         let spectrum = rfft(&grains[i], fft_size);
         let (magnitude_spectrum, _) = complex_to_polar_rfft(&spectrum);
         let grain_analysis = audiorust::analysis::analyzer(&magnitude_spectrum, fft_size, sample_rate);
+        let pitch_estimation = audiorust::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
+
         let grain_entry: GrainEntry = GrainEntry{
             file: file_name.clone(),
             start_frame: grain_frames[i].0,
@@ -119,6 +127,8 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
             sample_rate: sample_rate,
             grain_duration: sample_rate as f64 / (grain_frames[i].1 - grain_frames[i].0) as f64,
             energy: audiorust::analysis::energy(&grains[i]),
+            pitch_estimation: pitch_estimation,
+            midi: audiorust::tuning::freq_to_midi(pitch_estimation),
             spectral_centroid: grain_analysis.spectral_centroid,
             spectral_entropy: grain_analysis.spectral_entropy,
             spectral_flatness: grain_analysis.spectral_flatness,

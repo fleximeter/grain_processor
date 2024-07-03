@@ -20,8 +20,8 @@ fn main() {
     if !Path::new(&db).exists() {
         match sqlite::create_schema(&db) {
             Ok(_) => (),
-            Err(_) => {
-                println!("Error creating database schema.");
+            Err(err) => {
+                println!("Error creating database schema: {}", err.to_string());
                 return;
             }
         }
