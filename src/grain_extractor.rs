@@ -20,6 +20,7 @@ pub struct GrainEntry {
     pub end_frame: usize,
     pub sample_rate: u32,
     pub grain_duration: f64,
+    pub energy: f64,
     pub spectral_centroid: f64,
     pub spectral_entropy: f64,
     pub spectral_flatness: f64,
@@ -34,6 +35,26 @@ pub struct GrainEntry {
     pub spectral_slope_1_5_khz: f64,
     pub spectral_slope_0_5_khz: f64,
     pub spectral_variance: f64
+}
+
+/// Computes a basic similarity measurement between two grains. Measurement is between 0.0 (no similarity) and 1.0 (identity).
+pub fn similarity(grain1: &GrainEntry, grain2: &GrainEntry) -> f64 {
+    let mut similarity = 0.0;
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_centroid - grain2.spectral_centroid) / grain1.spectral_centroid), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_entropy - grain2.spectral_entropy) / grain1.spectral_entropy), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_flatness - grain2.spectral_flatness) / grain1.spectral_flatness), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_kurtosis - grain2.spectral_kurtosis) / grain1.spectral_kurtosis), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_roll_off_50 - grain2.spectral_roll_off_50) / grain1.spectral_roll_off_50), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_roll_off_75 - grain2.spectral_roll_off_75) / grain1.spectral_roll_off_75), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_roll_off_90 - grain2.spectral_roll_off_90) / grain1.spectral_roll_off_90), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_roll_off_95 - grain2.spectral_roll_off_95) / grain1.spectral_roll_off_95), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_skewness - grain2.spectral_skewness) / grain1.spectral_skewness), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_slope - grain2.spectral_slope) / grain1.spectral_slope), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_slope_0_1_khz - grain2.spectral_slope_0_1_khz) / grain1.spectral_slope_0_1_khz), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_slope_1_5_khz - grain2.spectral_slope_1_5_khz) / grain1.spectral_slope_1_5_khz), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_slope_0_5_khz - grain2.spectral_slope_0_5_khz) / grain1.spectral_slope_0_5_khz), 0.0);
+    similarity += f64::max(1.0 - f64::abs((grain1.spectral_variance - grain2.spectral_variance) / grain1.spectral_variance), 0.0);
+    similarity / 14.0
 }
 
 /// Extracts grains from an audio sequence.
@@ -97,6 +118,7 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
             end_frame: grain_frames[i].1,
             sample_rate: sample_rate,
             grain_duration: sample_rate as f64 / (grain_frames[i].1 - grain_frames[i].0) as f64,
+            energy: audiorust::analysis::energy(&grains[i]),
             spectral_centroid: grain_analysis.spectral_centroid,
             spectral_entropy: grain_analysis.spectral_entropy,
             spectral_flatness: grain_analysis.spectral_flatness,
@@ -112,6 +134,9 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
             spectral_slope_1_5_khz: grain_analysis.spectral_slope_1_5_khz,
             spectral_variance: grain_analysis.spectral_variance
         };
+        if i > 0 {
+            //println!("similarity: {}", similarity(&analysis_vec[analysis_vec.len() - 1], &grain_entry));
+        }
         analysis_vec.push(grain_entry);
     }
 
