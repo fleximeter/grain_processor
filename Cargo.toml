@@ -8,3 +8,4 @@ audiorust = { path = "../audiorust" }
 glob = "0.3.1"
 rand = "0.8.5"
 rusqlite = {version = "0.31.0", features = ["bundled"]}
+threadpool = "1.8.1"
