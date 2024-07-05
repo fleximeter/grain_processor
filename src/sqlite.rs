@@ -24,6 +24,7 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
                     file,
                     start_frame,
                     end_frame,
+                    length,
                     sample_rate,
                     grain_duration,
                     frequency,
@@ -43,11 +44,12 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
                     spectral_slope_0_5_khz,
                     spectral_variance
                 ) 
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)", 
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)", 
                 params![
                     &grains[i].file.clone(),
                     &grains[i].start_frame,
                     &grains[i].end_frame,
+                    grains[i].end_frame - grains[i].start_frame,
                     &grains[i].sample_rate,
                     &grains[i].grain_duration,
                     &grains[i].pitch_estimation,
@@ -98,6 +100,7 @@ pub fn create_schema(db: &String) -> Result<(), rusqlite::Error> {
             file TEXT NOT NULL,
             start_frame INTEGER NOT NULL,
             end_frame INTEGER NOT NULL,
+            length INTEGER NOT NULL,
             sample_rate INTEGER NOT NULL,
             grain_duration REAL NOT NULL,
             frequency REAL,
