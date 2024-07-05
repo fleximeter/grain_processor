@@ -1,0 +1,8 @@
+{
+    "database_path": "data/grains.sqlite3",
+    "audio_source_directory": "D:\\Recording\\Samples\\freesound\\creative_commons_0\\granulation",
+    "grain_size": 10000,
+    "grain_spacing": 20000,
+    "max_audio_chunk_size": 5292000,
+    "max_num_threads": 0
+}

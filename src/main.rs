@@ -9,25 +9,28 @@ mod sqlite;
 // The maximum audio chunk length. Files that are longer will be split up into smaller
 // chunks for more efficient multithreaded processing.
 const MAX_AUDIO_SIZE: usize = 44100 * 120;
+const JSON_PATH: &str = "config.json";
 
-fn main() {    
-    let grain_size = 10000;  // grain duration in frames
-    let grain_spacing = grain_size * 2;  // distance between grain onsets
-
-    // the fft size has to be at least as large as the grain size
-    let fft_size = f64::ceil(f64::log2(grain_size as f64)) as usize;
+fn main() {
+    let mut config = io::read_config(JSON_PATH);
     
-    let db = String::from("data/grains.sqlite3");  // the db path
-
+    // the fft size has to be at least as large as the grain size
+    let fft_size = usize::pow(2, f64::ceil(f64::log2(config.grain_size as f64)) as u32);
+    
     // the number of cpu cores available for the thread pool
-    let num_cpus = match std::thread::available_parallelism() {
-        Ok(x) => x.get(),
-        Err(_) => 1
-    };
+    if config.max_num_threads < 1 {
+        config.max_num_threads = match std::thread::available_parallelism() {
+            Ok(x) => x.get(),
+            Err(_) => 1
+        };
+    }
+
+    println!("Grain Processor\n--------------------------------------------------------\nDatabase path: {}\nAudio path: {}\nGrain size: {}\nGrain spacing: {}\nMax audio chunk size: {}\nMax threads: {}", 
+        config.database_path, config.audio_source_directory, config.grain_size, config.grain_spacing, config.max_audio_chunk_size, config.max_num_threads);
 
     // Create the database if it doesn't exist
-    if !Path::new(&db).exists() {
-        match sqlite::create_schema(&db) {
+    if !Path::new(&config.database_path).exists() {
+        match sqlite::create_schema(&config.database_path) {
             Ok(_) => (),
             Err(err) => {
                 println!("Error creating database schema: {}", err.to_string());
@@ -36,12 +39,13 @@ fn main() {
         }
     }
 
-    let audio_source_path = String::from("D:\\Recording\\Samples\\freesound\\creative_commons_0\\granulation\\**\\*.wav");
+    let audio_source_path = format!("{}{}", config.audio_source_directory, String::from("\\**\\*.wav"));
     let audio_file_list = io::find_files(&audio_source_path);
+    println!("Found {} files", audio_file_list.len());
     
     // Read all the files, mix to mono, and split into smaller audio chunks for faster processing
     let mut audio_chunks: Vec<(String, u32, Vec<f64>)> = Vec::new();
-    let pool = ThreadPool::new(num_cpus);
+    let pool = ThreadPool::new(config.max_num_threads);
     let (tx, rx) = mpsc::channel();  // the message passing channel
     for file in audio_file_list {
         let tx_clone = tx.clone();
@@ -77,15 +81,14 @@ fn main() {
     pool.join();  // let all threads wrap up
 
     println!("Starting grain extraction for {} audio file chunks...", audio_chunks.len());
-    let pool = ThreadPool::new(num_cpus);
+    let pool = ThreadPool::new(config.max_num_threads);
     let (tx, rx) = mpsc::channel();  // the message passing channel
     for chunk in audio_chunks {
-        //println!("File: {}", file);
         let tx_clone = tx.clone();
         // Start the thread
         pool.execute(move || {
             let file = chunk.0.clone();
-            let frames = grain_extractor::extract_grain_frames(&chunk.2, grain_size, grain_spacing, 20000);
+            let frames = grain_extractor::extract_grain_frames(&chunk.2, config.grain_size, config.grain_spacing, 20000);
             match grain_extractor::analyze_grains(&chunk.0, &chunk.2, frames, audiorust::spectrum::WindowType::Hanning, 5000, chunk.1, fft_size) {
                 Ok(grains) => {
                     match tx_clone.send((chunk.0, grains)) {
@@ -93,7 +96,7 @@ fn main() {
                         Err(_) => println!("Error sending grains in chunk of file {}", file)
                     }
                 },
-                Err(_) => ()
+                Err(err) => println!("Error analyzing grains: {:?}", err)
             };
         });
     }
@@ -103,7 +106,7 @@ fn main() {
 
     // Collect the analysis vectors and sort them by thread id
     for (file, grains) in rx {
-        match sqlite::insert_grains(&db, &grains) {
+        match sqlite::insert_grains(&config.database_path, &grains) {
             Ok(_) => println!("Chunk of file {} done.", file),
             Err(err) => println!("Error in file {}: {}", file, err)
         }
