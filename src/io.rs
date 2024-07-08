@@ -19,7 +19,7 @@ pub struct GranulatorConfig {
 /// Finds all files in a directory and its subdirectories
 /// Takes a Unix file pattern
 /// Returns a vector of file paths
-pub fn find_files(directory: &String) -> Vec<String> {
+pub fn find_files(directory: &str) -> Vec<String> {
     let mut file_paths: Vec<String> = Vec::new();
     let entries = glob(&directory);
     match entries {

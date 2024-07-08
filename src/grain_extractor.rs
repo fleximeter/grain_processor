@@ -59,6 +59,23 @@ pub fn similarity(grain1: &GrainEntry, grain2: &GrainEntry) -> f64 {
     similarity / 14.0
 }
 
+/// Checks to see if a grain has more than N consecutive zero samples in it.
+/// This is useful for screening out silent grains.
+pub fn check_zeros(grain: &Vec<f64>, num_consecutive_zeros: usize, effective_zero: f64) -> bool {
+    let mut consecutive: usize = 0;
+    for i in 0..grain.len() {
+        if grain[i].abs() < effective_zero {
+            consecutive += 1;
+            if consecutive >= num_consecutive_zeros {
+                return true;
+            }
+        } else {
+            consecutive = 0;
+        }
+    }
+    false
+}
+
 /// Extracts grains from an audio sequence.
 /// You specify the grain size and spacing between grain onsets. 
 /// If you don't want grain overlap, the spacing must be at least as large as the grain size.
@@ -74,7 +91,7 @@ pub fn extract_grain_frames(audio: &Vec<f64>, grain_size: usize, grain_spacing: 
 
 /// Analyzes grains
 /// Note: the fft size must be at least as large as the grain size!
-pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
+pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
     let mut analysis_vec: Vec<GrainEntry> = Vec::with_capacity(grain_frames.len());
     let mut grains: Vec<Vec<f64>> = Vec::with_capacity(grain_frames.len());
 
@@ -103,7 +120,10 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
                 grain[idx] *= window[j];
                 idx += 1;
             }
-            grains.push(grain);
+            // If more than 12.5% of the samples in order are 0, we don't add the grain
+            if !check_zeros(&grain, grain.len() / 8, 0.001) {
+                grains.push(grain);
+            }
         }
     }
 
@@ -118,17 +138,17 @@ pub fn analyze_grains(file_name: &String, audio: &Vec<f64>, grain_frames: Vec<(u
         let spectrum = rfft(&grains[i], fft_size);
         let (magnitude_spectrum, _) = complex_to_polar_rfft(&spectrum);
         let grain_analysis = audiorust::analysis::analyzer(&magnitude_spectrum, fft_size, sample_rate);
-        let pitch_estimation = audiorust::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
+        //let pitch_estimation = audiorust::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
 
         let grain_entry: GrainEntry = GrainEntry{
-            file: file_name.clone(),
+            file: file_name.to_string(),
             start_frame: grain_frames[i].0,
             end_frame: grain_frames[i].1,
             sample_rate: sample_rate,
             grain_duration: sample_rate as f64 / (grain_frames[i].1 - grain_frames[i].0) as f64,
             energy: audiorust::analysis::energy(&grains[i]),
-            pitch_estimation: pitch_estimation,
-            midi: audiorust::tuning::freq_to_midi(pitch_estimation),
+            pitch_estimation: 0.0,
+            midi: 0.0,
             spectral_centroid: grain_analysis.spectral_centroid,
             spectral_entropy: grain_analysis.spectral_entropy,
             spectral_flatness: grain_analysis.spectral_flatness,

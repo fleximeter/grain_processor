@@ -5,7 +5,7 @@ use rusqlite::{Connection, Result, params};
 use crate::grain_extractor::GrainEntry;
 
 /// Inserts a batch of grains into the SQLite database
-pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqlite::Error> {
+pub fn insert_grains(db: &str, grains: &Vec<GrainEntry>) -> Result<(), rusqlite::Error> {
     let mut conn = match Connection::open(&db) {
         Ok(x) => x,
         Err(err) => return Err(err)
@@ -29,6 +29,7 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
                     grain_duration,
                     frequency,
                     midi,
+                    energy,
                     spectral_centroid,
                     spectral_entropy,
                     spectral_flatness,
@@ -44,7 +45,7 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
                     spectral_slope_0_5_khz,
                     spectral_variance
                 ) 
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)", 
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)", 
                 params![
                     &grains[i].file.clone(),
                     &grains[i].start_frame,
@@ -54,6 +55,7 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
                     &grains[i].grain_duration,
                     &grains[i].pitch_estimation,
                     &grains[i].midi,
+                    &grains[i].energy,
                     &grains[i].spectral_centroid,
                     &grains[i].spectral_entropy,
                     &grains[i].spectral_flatness,
@@ -88,7 +90,7 @@ pub fn insert_grains(db: &String, grains: &Vec<GrainEntry>) -> Result<(), rusqli
 }
 
 /// Creates the SQLite database schema
-pub fn create_schema(db: &String) -> Result<(), rusqlite::Error> {
+pub fn create_schema(db: &str) -> Result<(), rusqlite::Error> {
     let mut conn = match Connection::open(&db) {
         Ok(x) => x,
         Err(err) => return Err(err)
@@ -105,6 +107,7 @@ pub fn create_schema(db: &String) -> Result<(), rusqlite::Error> {
             grain_duration REAL NOT NULL,
             frequency REAL,
             midi REAL,
+            energy REAL,
             spectral_centroid REAL NULL,
             spectral_entropy REAL NOT NULL,
             spectral_flatness REAL NOT NULL,
