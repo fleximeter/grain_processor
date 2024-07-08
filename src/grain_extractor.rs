@@ -121,7 +121,7 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
                 idx += 1;
             }
             // If more than 12.5% of the samples in order are 0, we don't add the grain
-            if !check_zeros(&grain, grain.len() / 8, 0.001) {
+            if !check_zeros(&grain, grain.len() / 8, 0.001) && !check_zeros(&grain, 50, 0.00001) {
                 grains.push(grain);
             }
         }
