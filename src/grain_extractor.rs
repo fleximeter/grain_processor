@@ -4,7 +4,7 @@
 use audiorust::{
     analysis::Analysis,
     grain, 
-    spectrum::{generate_window, WindowType, rfft, complex_to_polar_rfft}
+    spectrum::{rfft, complex_to_polar_rfft}
 };
 
 #[derive(Debug, Clone)]
@@ -91,7 +91,7 @@ pub fn extract_grain_frames(audio: &Vec<f64>, grain_size: usize, grain_spacing: 
 
 /// Analyzes grains
 /// Note: the fft size must be at least as large as the grain size!
-pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
+pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: audiorust::WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
     let mut analysis_vec: Vec<GrainEntry> = Vec::with_capacity(grain_frames.len());
     let mut grains: Vec<Vec<f64>> = Vec::with_capacity(grain_frames.len());
 
@@ -109,7 +109,7 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
     
     // Extract the grains
     if grain_frames.len() > 0 {
-        let window = generate_window(window_type, usize::min(max_window_length, grain_frames[0].1 - grain_frames[0].0));
+        let window = audiorust::generate_window(window_type, usize::min(max_window_length, grain_frames[0].1 - grain_frames[0].0));
         for i in 0..grain_frames.len() {
             let mut grain = audio[grain_frames[i].0..grain_frames[i].1].to_vec();
             for j in 0..window.len() / 2 {

@@ -89,7 +89,7 @@ fn main() {
         pool.execute(move || {
             let file = chunk.0.clone();
             let frames = grain_extractor::extract_grain_frames(&chunk.2, config.grain_size, config.grain_spacing, 20000);
-            match grain_extractor::analyze_grains(&chunk.0, &chunk.2, frames, audiorust::spectrum::WindowType::Hanning, 5000, chunk.1, fft_size) {
+            match grain_extractor::analyze_grains(&chunk.0, &chunk.2, frames, audiorust::WindowType::Hanning, 5000, chunk.1, fft_size) {
                 Ok(grains) => {
                     match tx_clone.send((chunk.0, grains)) {
                         Ok(_) => (),
