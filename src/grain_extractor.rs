@@ -1,7 +1,7 @@
 // File: grain_extractor.rs
 // This file contains functionality for grain extraction and analysis.
 
-use audiorust::{
+use aus::{
     analysis::Analysis,
     grain, 
     spectrum::{rfft, complex_to_polar_rfft}
@@ -91,7 +91,7 @@ pub fn extract_grain_frames(audio: &Vec<f64>, grain_size: usize, grain_spacing: 
 
 /// Analyzes grains
 /// Note: the fft size must be at least as large as the grain size!
-pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: audiorust::WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
+pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: aus::WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
     let mut analysis_vec: Vec<GrainEntry> = Vec::with_capacity(grain_frames.len());
     let mut grains: Vec<Vec<f64>> = Vec::with_capacity(grain_frames.len());
 
@@ -109,7 +109,7 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
     
     // Extract the grains
     if grain_frames.len() > 0 {
-        let window = audiorust::generate_window(window_type, usize::min(max_window_length, grain_frames[0].1 - grain_frames[0].0));
+        let window = aus::generate_window(window_type, usize::min(max_window_length, grain_frames[0].1 - grain_frames[0].0));
         for i in 0..grain_frames.len() {
             let mut grain = audio[grain_frames[i].0..grain_frames[i].1].to_vec();
             for j in 0..window.len() / 2 {
@@ -132,13 +132,13 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
         // Zero pad the grain
         let zeros = vec![0.0; fft_size - grains[i].len()];
         grains[i].extend(zeros);
-        audiorust::operations::adjust_level(&mut grains[i], -6.0);
+        aus::operations::adjust_level(&mut grains[i], -6.0);
 
         // Compute spectrum and analyze the grain
         let spectrum = rfft(&grains[i], fft_size);
         let (magnitude_spectrum, _) = complex_to_polar_rfft(&spectrum);
-        let grain_analysis = audiorust::analysis::analyzer(&magnitude_spectrum, fft_size, sample_rate);
-        //let pitch_estimation = audiorust::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
+        let grain_analysis = aus::analysis::analyzer(&magnitude_spectrum, fft_size, sample_rate);
+        //let pitch_estimation = aus::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
 
         let grain_entry: GrainEntry = GrainEntry{
             file: file_name.to_string(),
@@ -146,7 +146,7 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
             end_frame: grain_frames[i].1,
             sample_rate: sample_rate,
             grain_duration: sample_rate as f64 / (grain_frames[i].1 - grain_frames[i].0) as f64,
-            energy: audiorust::analysis::energy(&grains[i]),
+            energy: aus::analysis::energy(&grains[i]),
             pitch_estimation: 0.0,
             midi: 0.0,
             spectral_centroid: grain_analysis.spectral_centroid,

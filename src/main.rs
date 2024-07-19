@@ -1,4 +1,4 @@
-use audiorust;
+use aus;
 use std::path::Path;
 use std::sync::mpsc;
 use threadpool::ThreadPool;
@@ -50,10 +50,10 @@ fn main() {
     for file in audio_file_list {
         let tx_clone = tx.clone();
         pool.execute(move || {
-            let a = audiorust::read(&file);
+            let a = aus::read(&file);
             match a {
                 Ok(mut x) => {
-                    audiorust::mixdown(&mut x);
+                    aus::mixdown(&mut x);
                     let mut start_idx = 0;
                     let mut end_idx = usize::min(x.num_frames, MAX_AUDIO_SIZE);
                     while start_idx < x.num_frames {
@@ -89,7 +89,7 @@ fn main() {
         pool.execute(move || {
             let file = chunk.0.clone();
             let frames = grain_extractor::extract_grain_frames(&chunk.2, config.grain_size, config.grain_spacing, 20000);
-            match grain_extractor::analyze_grains(&chunk.0, &chunk.2, frames, audiorust::WindowType::Hanning, 5000, chunk.1, fft_size) {
+            match grain_extractor::analyze_grains(&chunk.0, &chunk.2, frames, aus::WindowType::Hanning, 5000, chunk.1, fft_size) {
                 Ok(grains) => {
                     match tx_clone.send((chunk.0, grains)) {
                         Ok(_) => (),
