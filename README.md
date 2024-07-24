@@ -11,3 +11,7 @@ To build this crate, run `cargo build --release` from the root of the repository
 
 ## Running
 The grain processor may take some time to load all of the audio files. It will split longer files into smaller chunks to allow for faster multithreaded processing. The chunk size in frames is specified in the configuration file.
+
+The configuration file also allows you to limit the number of concurrent threads. This option could be useful if you find that the grain processor is bogging down your CPU and preventing you from doing other things on your computer at the same time. If you don't care how many threads are running, you can just set this number to 0, and the number of threads will be determined automatically.
+
+The grain processor will automatically create the database if it does not exist, but if the database exists, it will simply add to it rather than replacing the records that are already there. This allows you to grow your database over time by running the grain processor again and again with new audio.
