@@ -138,7 +138,8 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
         let spectrum = rfft(&grains[i], fft_size);
         let (magnitude_spectrum, _) = complex_to_polar_rfft(&spectrum);
         let grain_analysis = aus::analysis::analyzer(&magnitude_spectrum, fft_size, sample_rate);
-        //let pitch_estimation = aus::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
+        let pitch_estimation = aus::analysis::pyin_pitch_estimator_single(&grains[i], sample_rate, F_MIN, F_MAX);
+        let midi = aus::tuning::freq_to_midi(pitch_estimation);
 
         let grain_entry: GrainEntry = GrainEntry{
             file: file_name.to_string(),
@@ -147,8 +148,8 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
             sample_rate: sample_rate,
             grain_duration: sample_rate as f64 / (grain_frames[i].1 - grain_frames[i].0) as f64,
             energy: aus::analysis::energy(&grains[i]),
-            pitch_estimation: 0.0,
-            midi: 0.0,
+            pitch_estimation: pitch_estimation,
+            midi: midi,
             spectral_centroid: grain_analysis.spectral_centroid,
             spectral_entropy: grain_analysis.spectral_entropy,
             spectral_flatness: grain_analysis.spectral_flatness,
