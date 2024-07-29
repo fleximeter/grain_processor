@@ -19,24 +19,29 @@ pub struct GranulatorConfig {
 /// Finds all files in a directory and its subdirectories
 /// Takes a Unix file pattern
 /// Returns a vector of file paths
-pub fn find_files(directory: &str) -> Vec<String> {
+pub fn find_audio(directory: &str) -> Vec<String> {
     let mut file_paths: Vec<String> = Vec::new();
-    let entries = glob(&directory);
-    match entries {
-        Ok(paths) => {
-            for entry in paths {
-                match entry {
-                    Ok(path) => {
-                        match path.to_str() {
-                            Some(x) => file_paths.push(x.to_string()),
-                            None => ()
-                        }
-                    },
-                    Err(_) => ()
-                };
-            }
-        },
-        Err(_) => ()
+    let extensions = vec!["aif", "aiff", "mp3", "flac", "ogg", "aac", "m4a", "wma", "wav"];
+    for extension in extensions {
+        let pattern = format!("{}/**/*.{}", directory, extension);
+        let entries = glob(&pattern);
+        match entries {
+            Ok(paths) => {
+                for entry in paths {
+                    match entry {
+                        Ok(path) => {
+                            let path = match path.to_str() {
+                                Some(x) => String::from(x),
+                                None => String::from("")
+                            };
+                            file_paths.push(path);
+                        },
+                        Err(_) => ()
+                    };
+                }
+            },
+            Err(_) => ()
+        }
     }
     file_paths
 }

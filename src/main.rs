@@ -36,8 +36,7 @@ fn main() {
         }
     }
 
-    let audio_source_path = format!("{}{}", config.audio_source_directory, String::from("\\**\\*.wav"));
-    let audio_file_list = io::find_files(&audio_source_path);
+    let audio_file_list = io::find_audio(&config.audio_source_directory);
     println!("Found {} files", audio_file_list.len());
     
     // Read all the files, mix to mono, and split into smaller audio chunks for faster processing
