@@ -13,7 +13,7 @@ pub struct GranulatorConfig {
     pub audio_source_directory: String,
     pub grain_profiles: Vec<HashMap<String, usize>>,
     pub max_audio_chunk_size: usize,
-    pub max_num_threads: usize
+    pub max_num_threads: usize,
 }
 
 /// Finds all files in a directory and its subdirectories

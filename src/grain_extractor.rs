@@ -6,6 +6,7 @@ use aus::{
     grain, 
     spectrum::{rfft, complex_to_polar_rfft}
 };
+use biquad::*;
 
 #[derive(Debug, Clone)]
 pub enum GrainError {
@@ -94,6 +95,20 @@ pub fn extract_grain_frames(audio: &Vec<f64>, grain_size: usize, grain_spacing: 
 pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usize, usize)>, window_type: aus::WindowType, max_window_length: usize, sample_rate: u32, fft_size: usize) -> Result<Vec<GrainEntry>, GrainError> {
     let mut analysis_vec: Vec<GrainEntry> = Vec::with_capacity(grain_frames.len());
     let mut grains: Vec<Vec<f64>> = Vec::with_capacity(grain_frames.len());
+    let mut filtered_audio = vec![0.0; audio.len()];
+
+    // Filter the audio for checking super low frequencies.
+    // This is necessary because some grains might only have very low frequencies, and this could cause
+    // problems with consistent audio levels if they are filtered during the synthesis process.
+    // Here we'll use a cutoff of 220 Hz, which should make super low frequencies almost completely disappear.
+    let filter_type = Type::HighPass;
+    let fs = Hertz::<f64>::from_hz(sample_rate as f64).unwrap();
+    let cutoff = Hertz::<f64>::from_hz(220.0).unwrap();
+    let coefs = Coefficients::<f64>::from_params(filter_type, fs, cutoff, Q_BUTTERWORTH_F64).unwrap();
+    let mut filter = DirectForm2Transposed::<f64>::new(coefs);
+    for i in 0..audio.len() {
+        filtered_audio[i] = filter.run(audio[i]);
+    }
 
     // For pyin
     const F_MIN: f64 = 50.0;
@@ -112,16 +127,20 @@ pub fn analyze_grains(file_name: &str, audio: &Vec<f64>, grain_frames: Vec<(usiz
         let window = aus::generate_window(window_type, usize::min(max_window_length, grain_frames[0].1 - grain_frames[0].0));
         for i in 0..grain_frames.len() {
             let mut grain = audio[grain_frames[i].0..grain_frames[i].1].to_vec();
+            let mut filtered_grain = filtered_audio[grain_frames[i].0..grain_frames[i].1].to_vec();
             for j in 0..window.len() / 2 {
                 grain[j] *= window[j];
+                filtered_grain[j] *= window[j];
             }
             let mut idx = grain.len() - (window.len() - window.len() / 2);
             for j in window.len() / 2..window.len() {
                 grain[idx] *= window[j];
+                filtered_grain[idx] *= window[j];
                 idx += 1;
             }
-            // If more than 12.5% of the samples in order are 0, we don't add the grain
-            if !check_zeros(&grain, grain.len() / 8, 0.001) && !check_zeros(&grain, 50, 0.00001) {
+            // If more than 12.5% of the samples in order are 0 for the filtered grain, we don't add the grain
+            // We use the filtered grain because we don't want grains with only super low frequency content.
+            if !check_zeros(&filtered_grain, filtered_grain.len() / 8, 1e-3) && !check_zeros(&filtered_grain, 50, 1e-5) {
                 grains.push(grain);
             }
         }
