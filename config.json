@@ -8,5 +8,5 @@
         {"grain_size": 8192, "grain_spacing": 9000}
     ],
     "max_audio_chunk_size": 5292000,
-    "max_num_threads": 12,
+    "max_num_threads": 12
 }

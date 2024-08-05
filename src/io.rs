@@ -50,11 +50,17 @@ pub fn find_audio(directory: &str) -> Vec<String> {
 pub fn read_config(config_file_path: &str) -> GranulatorConfig {
     let config_contents = match fs::read_to_string(config_file_path) {
         Ok(x) => x,
-        Err(_) => String::from("")
+        Err(err) => {
+            println!("Error reading file: {}", err.to_string());
+            String::from("")
+        }
     };
     let json_contents: GranulatorConfig = match serde_json::from_str(&config_contents){
         Ok(x) => x,
-        Err(_) => GranulatorConfig{database_path: String::from("grains.sqlite3"), audio_source_directory: String::from("."), grain_profiles: Vec::new(), max_audio_chunk_size: 44100 * 60, max_num_threads: 0}
+        Err(err) => {
+            println!("Error parsing JSON file: {}", err.to_string());
+            GranulatorConfig{database_path: String::from("grains.sqlite3"), audio_source_directory: String::from("."), grain_profiles: Vec::new(), max_audio_chunk_size: 44100 * 60, max_num_threads: 0}
+        }
     };
     json_contents
 }
