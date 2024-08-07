@@ -123,6 +123,13 @@ pub fn create_schema(db: &str) -> Result<(), rusqlite::Error> {
             spectral_slope_0_5_khz REAL NOT NULL,
             spectral_variance REAL NOT NULL
         );
+
+        CREATE TABLE tags (
+            id INTEGER PRIMARY KEY,
+            grain_id INTEGER NOT NULL,
+            tag TEXT NOT NULL,
+            FOREIGN KEY (grain_id) REFERENCES grains(id)
+        );
     ", ()) {
         Ok(_) => (),
         Err(err) => return Err(err)
