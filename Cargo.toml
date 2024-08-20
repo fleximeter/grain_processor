@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aus = { path = "../aus-rust" }
+aus = "0.1.6"
 biquad = "0.4.2"
 glob = "0.3.1"
 rand = "0.8.5"
